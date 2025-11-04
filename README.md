@@ -87,7 +87,7 @@ git clone https://github.com/Dexmal/dexbotic.git
 2. Step 2: Start Docker
 
 ```bash
-docker run -it --rm --gpus all \
+docker run -it --rm --gpus all --network host \
   -v /path/to/dexbotic:/dexbotic \
   dexmal/dexbotic \
   bash
