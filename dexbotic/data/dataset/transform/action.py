@@ -231,6 +231,7 @@ class ActionNorm:
         self,
         statistic_mapping: dict = {"default": {"min": -1, "max": 1}},
         strict: bool = True,
+        use_quantiles: bool = False,
     ):
         """Normalize the action to [-1, 1] by the `statistic_mapping`.
 
@@ -244,6 +245,7 @@ class ActionNorm:
         """
         self.statistic_mapping = statistic_mapping
         self.strict = strict
+        self.use_quantiles = use_quantiles
 
     def __call__(self, episode_data_dict: dict, **kwargs) -> dict:
         for key in self.statistic_mapping.keys():
@@ -267,7 +269,12 @@ class ActionNorm:
         return episode_data_dict
 
     def _normalize(self, data, stats):
-        return ((data - stats["mean"]) / (stats["std"] + 1e-6)).astype(np.float32)
+        if self.use_quantiles:
+            return (
+                (data - stats["min"]) / (stats["max"] - stats["min"] + 1e-6) * 2.0 - 1.0
+            ).astype(np.float32)
+        else:
+            return ((data - stats["mean"]) / (stats["std"] + 1e-6)).astype(np.float32)
 
 
 class ActionNormAnd2String:

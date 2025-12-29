@@ -104,6 +104,7 @@ class ActionDenorm:
         self,
         statistic_mapping: dict = {"default": {"min": -1, "max": 1}},
         strict: bool = True,
+        use_quantiles: bool = False,
     ):
         """Denormalize the action from [-1, 1] to the original range by the `statistic_mapping`.
 
@@ -117,6 +118,7 @@ class ActionDenorm:
         """
         self.statistic_mapping = statistic_mapping
         self.strict = strict
+        self.use_quantiles = use_quantiles
 
     def __call__(self, episode_data_dict: dict, **kwargs) -> dict:
         for key in self.statistic_mapping.keys():
@@ -137,13 +139,25 @@ class ActionDenorm:
         return episode_data_dict
 
     def _denormalize(self, data, stats):
-        if stats["mean"].shape[-1] != data.shape[-1]:
-            stats["mean"] = np.concatenate(
-                [stats["mean"], np.zeros(data.shape[-1] - stats["mean"].shape[-1])],
-                axis=-1,
-            )
-            stats["std"] = np.concatenate(
-                [stats["std"], np.ones(data.shape[-1] - stats["std"].shape[-1])],
-                axis=-1,
-            )
-        return data * (stats["std"] + 1e-6) + stats["mean"]
+        if self.use_quantiles:
+            if stats["max"].shape[-1] != data.shape[-1]:
+                stats["max"] = np.concatenate(
+                    [stats["max"], np.ones(data.shape[-1] - stats["max"].shape[-1])],
+                    axis=-1,
+                )
+                stats["min"] = np.concatenate(
+                    [stats["min"], -np.ones(data.shape[-1] - stats["min"].shape[-1])],
+                    axis=-1,
+                )
+            return (data + 1) / 2 * (stats["max"] - stats["min"] + 1e-6) + stats["min"]
+        else:
+            if stats["mean"].shape[-1] != data.shape[-1]:
+                stats["mean"] = np.concatenate(
+                    [stats["mean"], np.zeros(data.shape[-1] - stats["mean"].shape[-1])],
+                    axis=-1,
+                )
+                stats["std"] = np.concatenate(
+                    [stats["std"], np.ones(data.shape[-1] - stats["std"].shape[-1])],
+                    axis=-1,
+                )
+            return data * (stats["std"] + 1e-6) + stats["mean"]
