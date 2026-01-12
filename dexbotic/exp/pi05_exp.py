@@ -57,6 +57,7 @@ class Pi05ModelConfig(ModelConfig):
 
     def build_model(self) -> Pi05ForCausalLM:
         model = Pi05ForCausalLM.from_pretrained(self.model_name_or_path)
+        model.model.config.chunk_size = 50
         return model
 
 

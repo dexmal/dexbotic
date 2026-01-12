@@ -68,7 +68,7 @@ class Pi05TrainerConfig(_Pi0TrainerConfig):
     num_train_steps: int = field(default=30000)
     save_steps: int = field(default=5000)
     save_total_limit: int = field(default=10)
-    per_device_train_batch_size: int = field(default=32)
+    per_device_train_batch_size: int = field(default=8)
     gradient_accumulation_steps: int = field(default=1)
     model_max_length: int = field(default=200)
     output_dir: str = field(
@@ -144,6 +144,7 @@ class Pi05ModelConfig(_Pi05ModelConfig):
 
     def build_model(self) -> Pi05ForCausalLM:
         model = Pi05ForCausalLM.from_pretrained(self.model_name_or_path)
+        model.model.config.chunk_size = 10
         return model
 
 
