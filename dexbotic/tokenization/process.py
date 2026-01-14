@@ -70,6 +70,45 @@ class LLMTokenization(Tokenization):
         return data_dict
 
 
+class NaVILATokenization(Tokenization):
+    """
+    Tokenization class for NaVILA dataset.
+
+    Directly processes conversation format without using chat templates.
+    Preserves all <image> tokens in their original positions.
+    """
+
+    def __init__(self, tokenizer, data_args):
+        self.tokenizer = tokenizer
+        self.data_args = data_args
+
+    def __call__(self, conversations: List[Dict], has_image: bool) -> Dict:
+        from dexbotic.constants import IGNORE_INDEX
+        from dexbotic.tokenization.tokenization import tokenizer_image_token
+
+        human_msg = conversations[0]["value"]
+        gpt_msg = conversations[1]["value"] if len(conversations) > 1 else ""
+
+        # Tokenize full prompt: human_msg + gpt_msg + "\n"
+        prompt = human_msg + gpt_msg + "\n"
+        input_ids = tokenizer_image_token(prompt, self.tokenizer, return_tensors="pt")
+        # Ensure 1D tensor [seq_len] for DataCollator (it will add batch dimension)
+        if input_ids.dim() > 1:
+            input_ids = input_ids.squeeze()
+
+        # Create labels and mask human question part
+        labels = input_ids.clone()
+        human_len = len(tokenizer_image_token(human_msg, self.tokenizer))
+        labels[:human_len] = IGNORE_INDEX
+
+        # Mask padding tokens
+        pad_token_id = self.tokenizer.pad_token_id or self.tokenizer.eos_token_id
+        if pad_token_id is not None:
+            labels[input_ids == pad_token_id] = IGNORE_INDEX
+
+        return {"input_ids": input_ids, "labels": labels}
+
+
 class Pi0Tokenization(Tokenization):
     def __init__(self, tokenizer: transformers.GemmaTokenizer, *args, **kwargs):
         self.tokenizer = tokenizer

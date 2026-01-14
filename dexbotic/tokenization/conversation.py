@@ -9,6 +9,7 @@ class SeparatorStyle(Enum):
     """Different separator style."""
     TWO = auto()
     PLAIN = auto()
+    LLAMA_3 = auto()
 
 
 class KeywordsStoppingCriteria(StoppingCriteria):
@@ -91,6 +92,16 @@ class Conversation:
                     ret += message + seps[i % 2]
                 else:
                     ret += ""
+        elif self.sep_style == SeparatorStyle.LLAMA_3:
+            ret = self.system + self.sep
+            for rid, (role, message) in enumerate(messages):
+                if message:
+                    if type(message) is tuple:
+                        message = message[0]
+                    sep = self.sep if rid < len(messages) - 1 else self.sep2
+                    ret += role + message + sep
+                else:
+                    ret += role
         else:
             raise ValueError(f"Invalid style: {self.sep_style}")
 
@@ -187,6 +198,36 @@ conv_dexbotic = Conversation(
     sep2="<|endoftext|>",
 )
 
+conv_step = Conversation(
+    system="A chat between a curious user and an artificial intelligence assistant. "
+    "The assistant gives helpful, detailed, and polite answers to the user's questions.",
+    roles=("USER", "ASSISTANT"),
+    version="step",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.TWO,
+    sep=" ",
+    sep2="<|im_end|>",
+)
+
+llama_3_chat = Conversation(
+    system="<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nYou are a helpful language and vision assistant. "
+    "You are able to understand the visual content that the user provides, "
+    "and assist the user with a variety of tasks using natural language.",
+    roles=(
+        "<|start_header_id|>user<|end_header_id|>\n\n",
+        "<|start_header_id|>assistant<|end_header_id|>\n\n",
+    ),
+    version="llama_v3",
+    messages=(),
+    offset=0,
+    sep_style=SeparatorStyle.LLAMA_3,
+    sep="<|eot_id|>",
+    sep2="<|end_of_text|>",
+)
+
 conv_templates = {
     "dexbotic": conv_dexbotic,
+    "step": conv_step,
+    "llama_3": llama_3_chat,
 }
