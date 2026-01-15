@@ -29,8 +29,12 @@
 
 ## 🔥 最新动态
 
-- **[2026-01-08]** 新增 **联合训练 (Co-training)** 能力，支持对 CogACT 模型的动作专家和 LLM 进行联合优化。同时发布适配 **Blackwell GPU** 的专用镜像。
-- **[2025-12-29]** 全面支持 **OFT** 和 **Pi0.5** 模型。
+- **[2026-01-15]** 发布了 [SO-101](hardware/docs/so101_inference_example.md) 在 Dexbotic 中使用的教程。
+- **[2026-01-15]** 支持 [SimpleVLA-RL](docs/RL.md)。
+- **[2026-01-15]** 支持 [NaVILA](playground/example_navila_exp.py)。
+- **[2026-01-08]** 新增 [联合训练]((dexbotic/exp/hybrid_cogact_exp.py))能力，支持对 CogACT 模型的动作专家与 LLM 的联合优化。
+- **[2026-01-08]** 发布了适配 [Blackwell GPU](#blackwell-gpus) 的专用镜像。
+- **[2025-12-29]** 支持 [OFT]((playground/benchmarks/libero/libero_oft.py)) 和 [Pi0.5](playground/benchmarks/libero/libero_pi05.py) 模型。
 - **[2025-10-20]** Dexbotic 正式发布！详情请查阅 [技术报告](https://arxiv.org/pdf/2510.23511) 和 [官方文档](https://dexbotic.com/docs/)。
 
 
@@ -57,7 +61,7 @@ pip install -e .
 ```
 > **系统要求**：Ubuntu 20.04/22.04，推荐使用 RTX 4090、A100 或 H100（训练建议 8 GPU，部署需 1 GPU）。
 
-<details>
+<details id="blackwell-gpus">
 <summary>在 Blackwell GPU 上使用</summary>
 
 对于使用 Blackwell 架构 GPU（例如 B100、RTX 5090）的用户，请使用专用的 Docker 镜像 `dexmal/dexbotic:c130t28`。
@@ -136,6 +140,25 @@ pip install -e .
 | CogACT | 43.8 | 87 | 72 | 11 | 5 |
 | DB-CogACT | 58.5 | 99 | 89 | 28 | 18 |
 
+## 常见问题
+
+<details close>
+<summary>Q: Flash-Attention 安装失败</summary>
+
+A: 详细的安装说明和故障排查，请参阅官方文档：https://github.com/Dao-AILab/flash-attention。
+</details>
+
+<details close>
+<summary>Q: RLDS/LeRobot 数据格式如何转换为 Dexdata？</summary>
+
+A: 我们在 [数据转换指南](docs/Data.md#2-data-conversion) 中提供了一般的数据转换方法。LeRobot 数据转换的示例见 [convert_lerobot_to_dexdata](script/convert_data/convert_lerobot_to_dexdata.py)，RLDS 数据转换示例见 [convert_rlds_to_dexdata](script/convert_data/convert_rlds_to_dexdata.py)。
+</details>
+
+<details close>
+<summary>Q: 5090 显卡支持吗？</summary>
+
+A: 支持，请参考 [Blackwell 架构显卡使用](#blackwell-gpus)。
+</details>
 
 ## 支持我们
 

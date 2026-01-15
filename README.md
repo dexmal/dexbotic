@@ -29,8 +29,12 @@
 
 ## 🔥 News
 
-- **[2026-01-08]** Added **Co-training** capability, enabling joint optimization of action experts and LLMs for the CogACT model. Also released a specialized image compatible with **Blackwell GPUs**.
-- **[2025-12-29]** Full support for **OFT** and **Pi0.5** models.
+- **[2026-01-15]** Released a tutorial on integrating [SO-101](hardware/docs/so101_inference_example.md) with Dexbotic.
+- **[2026-01-15]** Supported [SimpleVLA-RL](docs/RL.md)
+- **[2026-01-15]** Supported [NaVILA](playground/example_navila_exp.py).
+- **[2026-01-08]** Added [Co-training]((dexbotic/exp/hybrid_cogact_exp.py)) capability, enabling joint optimization of action experts and LLMs for the CogACT model. 
+- **[2026-01-08]** Released a specialized image compatible with [Blackwell GPUs](#blackwell-gpus).
+- **[2025-12-29]** Supported [OFT]((playground/benchmarks/libero/libero_oft.py)) and [Pi0.5](playground/benchmarks/libero/libero_pi05.py) models.
 - **[2025-10-20]** Dexbotic officially released! Check out the [technical report](https://arxiv.org/pdf/2510.23511) and [official documentation](https://dexbotic.com/docs/) for details.
 
 
@@ -59,7 +63,7 @@ pip install -e .
 ```
 > **System Requirements**: Ubuntu 20.04/22.04, recommended GPUs: RTX 4090, A100, or H100 (8 GPUs recommended for training, 1 GPU for deployment).
 
-<details>
+<details id="blackwell-gpus">
 <summary>Using on Blackwell GPUs</summary>
 
 For users with Blackwell architecture GPUs (e.g., B100, RTX 5090), please use the specialized Docker image `dexmal/dexbotic:c130t28`.
@@ -138,6 +142,25 @@ The following shows a comparison of evaluation results between models trained wi
 | CogACT | 43.8 | 87 | 72 | 11 | 5 |
 | DB-CogACT | 58.5 | 99 | 89 | 28 | 18 |
 
+## FAQ
+
+<details close>
+<summary>Q: Failed to install Flash-Attention</summary>
+
+A: For detailed installation instructions and troubleshooting, please refer to the official documentation at https://github.com/Dao-AILab/flash-attention.
+</details>
+
+<details close>
+<summary>Q: Coverting RLDS/LeRobot to Dexdata</summary>
+
+A: We provide a general data conversion guide in [data conversion](docs/Data.md#2-data-conversion). An example of Lerobot data conversion can be found in [convert_lerobot_to_dexdata](script/convert_data/convert_lerobot_to_dexdata.py), and an example for RLDS data conversion is available in [convert_rlds_to_dexdata](script/convert_data/convert_rlds_to_dexdata.py).
+</details>
+
+<details close>
+<summary>Q: Is 5090 supported?</summary>
+
+A: Yes, please refer to [Using on Blackwell GPUs](#blackwell-gpus).
+</details>
 
 ## Support Us
 
