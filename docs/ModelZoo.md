@@ -28,6 +28,15 @@ We recommend using the following data formats to fully utilize the pretrained mo
 3. **Dual-arm end-effector pose**: Organize 14D action data as `[left_arm_xyz + left_arm_rpy + left_arm_gripper + right_arm_xyz + right_arm_rpy + right_arm_gripper]`
 4. **Dual-arm joint angles**: Organize 16D action data as `[left_arm_joints + left_arm_gripper + right_arm_joints + right_arm_gripper]`
 
+## Other Dexbotic Models
+
+| Model | Link |
+| -     | -    |
+| Dexbotic-π0 | [🤗 HF](https://huggingface.co/Dexmal/Dexbotic-PI0) |
+| Dexbotic-π05 | [🤗 HF](https://huggingface.co/Dexmal/Dexbotic-PI05) |
+| Dexbotic-NaVILA | [🤗 HF](https://huggingface.co/Dexmal/Dexbotic-NaVILA) |
+| Dexbotic-RL-Base | [🤗 HF](https://huggingface.co/Dexmal/Dexbotic-RL-Base) |
+
 
 ## Benchmark Results
 
