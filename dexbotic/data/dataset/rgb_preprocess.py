@@ -18,13 +18,13 @@ class PreprocessRGB:
                 self.image_processor.size)
             image = torch.zeros(3, crop_size['height'], crop_size['width'])
         else:
-            if self.augmentations:
-                image = self.augmentations(image=image)
             if self.image_aspect_ratio == 'pad':
                 if self.image_pad_mode == 'zero':
                     image = self.expand2square(image, tuple(int(x * 255) for x in [0, 0, 0]))
                 else:
                     image = self.expand2square(image, tuple(int(x * 255) for x in self.image_processor.image_mean))
+            if self.augmentations:
+                image = self.augmentations(image=image)
             image = self.image_processor.preprocess(
                 image, return_tensors='pt')['pixel_values'][0]
         return image
