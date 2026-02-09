@@ -29,8 +29,10 @@
 
 ## 🔥 最新动态
 
+- **[2026-02-10]** [DM0](docs/DM0.md) 正式发布！详情参见 [技术报告]()。
+- **[2026-02-10]** 合作公告：我们非常高兴地宣布与 [RLinf](https://github.com/RLinf/RLinf) 达成战略合作。双方将共同推进 VLA + RL 的研究与应用。
 - **[2026-01-15]** 发布了 [SO-101](hardware/docs/so101_inference_example.md) 在 Dexbotic 中使用的教程。
-- **[2026-01-15]** 支持 [SimpleVLA-RL](docs/RL.md)。
+- **[2026-01-15]** 支持 [GRPO](docs/RL.md)。
 - **[2026-01-15]** 支持 [NaVILA](playground/example_navila_exp.py)。
 - **[2026-01-08]** 新增 [联合训练]((dexbotic/exp/hybrid_cogact_exp.py))能力，支持对 CogACT 模型的动作专家与 LLM 的联合优化。
 - **[2026-01-08]** 发布了适配 [Blackwell GPU](#blackwell-gpus) 的专用镜像。

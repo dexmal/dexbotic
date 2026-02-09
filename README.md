@@ -29,8 +29,10 @@
 
 ## 🔥 News
 
+- **[2026-02-10]** [DM0](docs/DM0.md) released! See the [technical report]() for more information.
+- **[2026-02-10]** Partnership Announcement: We are excited to announce a strategic collaboration with [RLinf](https://github.com/RLinf/RLinf). Together, our teams will advance VLA + RL research and applications.
 - **[2026-01-15]** Released a tutorial on integrating [SO-101](hardware/docs/so101_inference_example.md) with Dexbotic.
-- **[2026-01-15]** Supported [SimpleVLA-RL](docs/RL.md)
+- **[2026-01-15]** Supported [GRPO](docs/RL.md)
 - **[2026-01-15]** Supported [NaVILA](playground/example_navila_exp.py).
 - **[2026-01-08]** Added [Co-training]((dexbotic/exp/hybrid_cogact_exp.py)) capability, enabling joint optimization of action experts and LLMs for the CogACT model. 
 - **[2026-01-08]** Released a specialized image compatible with [Blackwell GPUs](#blackwell-gpus).
