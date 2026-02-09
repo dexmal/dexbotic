@@ -5,6 +5,7 @@ import numpy as np
 
 from dexbotic.constants import DEFAULT_IMAGE_TOKEN
 from dexbotic.data.dataset.tokenization import Tokenization
+from dexbotic.tokenization import conversation as conversation_lib
 from dexbotic.tokenization import tokenization as tokenization_lib
 
 
@@ -14,7 +15,7 @@ def _process(
         has_image: bool = False,
         chat_template: str = "dexbotic",
 ):
-    if chat_template == "dexbotic":
+    if chat_template in ["dexbotic", "step"]:
         return tokenization_lib.tokenize_dexbotic(
             sources=sources,
             tokenizer=tokenizer,
@@ -25,14 +26,17 @@ def _process(
         raise ValueError(f"Unsupported chat template: {chat_template}")
 
 
-def llava_multi_image_map_fn(conversations):
+def llava_multi_image_map_fn(conversations, mode="dexbotic"):
     messages = conversations
 
     for msg in messages:
         if DEFAULT_IMAGE_TOKEN in msg['value']:
             # move the image token to the beginning of the sentence
             msg['value'] = msg['value'].replace(DEFAULT_IMAGE_TOKEN, '').strip()
-            msg['value'] = DEFAULT_IMAGE_TOKEN + '\n' + msg['value']
+            if mode == 'step':
+                msg['value'] = msg['value'] + f"<im_start>{DEFAULT_IMAGE_TOKEN}<im_end>"
+            else:
+                msg['value'] = DEFAULT_IMAGE_TOKEN + "\n" + msg['value']
             msg['value'] = msg['value'].strip()
 
     return conversations
@@ -121,3 +125,121 @@ class Pi0Tokenization(Tokenization):
         tokens = tokens[: self._max_len]
         tokens += [0] * (self._max_len - len(tokens))
         return {"input_ids": np.asarray(tokens), "labels": np.asarray(tokens)}
+
+
+class DM0Tokenization(Tokenization):
+    """DM0 tokenization matching OpenPI's DM0Tokenizer format for SFT mode.
+
+    Uses "step" conversation template with USER/ASSISTANT roles.
+    Format: "System prompt USER: prompt ASSISTANT: <empty>"
+    """
+
+    def __init__(
+        self,
+        tokenizer: transformers.PreTrainedTokenizer,
+        chat_template: str = "step",
+        *args,
+        **kwargs,
+    ):
+        self.tokenizer = tokenizer
+        self._max_len = tokenizer.model_max_length
+        self.chat_template = chat_template
+
+    def __call__(self, conversations: List[Dict], **kwargs) -> Dict:
+        """Tokenize conversations in SFT format.
+
+        Args:
+            conversations: List of conversation turns, e.g. [{"from": "human", "value": "prompt"}]
+
+        Returns:
+            Dict with input_ids, labels, token_mask, ar_mask, loss_mask
+        """
+        # Get conversation template
+        conv = conversation_lib.conv_templates[self.chat_template].copy()
+        roles = {"human": conv.roles[0], "gpt": conv.roles[1]}
+        seps = {conv.roles[0]: conv.sep, conv.roles[1]: conv.sep2}
+
+        # Build system prompt
+        system_prompt = f"{conv.system}{conv.sep}"
+        tokens = list(self.tokenizer.encode(system_prompt, add_special_tokens=False))
+        token_mask = [True] * len(tokens)
+        ar_mask = [1] * len(tokens)  # Causal attention for all
+        loss_mask = [False] * len(tokens)  # No loss on system prompt
+
+        # Remove empty trailing assistant turn if present (requested for OpenPI alignment)
+        conversations = list(conversations)
+        if (
+            conversations
+            and conversations[-1].get("from") == "gpt"
+            and not conversations[-1].get("value")
+        ):
+            conversations.pop()
+
+        # Process each conversation turn
+        for i, msg in enumerate(conversations):
+            role_key = msg.get("from", "human")
+            if role_key not in roles:
+                continue
+            role = roles[role_key]
+            text = msg.get("value", "")
+            if text is None:
+                text = ""
+            text = text.strip().replace("\n", " ")
+            sep = seps[role]
+
+            # Role token
+            role_str = f"{role}: "
+            role_tokens = list(
+                self.tokenizer.encode(role_str, add_special_tokens=False)
+            )
+            tokens.extend(role_tokens)
+            token_mask.extend([True] * len(role_tokens))
+            ar_mask.extend([1] * len(role_tokens))
+            loss_mask.extend([False] * len(role_tokens))
+
+            # Content + separator
+            if text:
+                content_str = f"{text}{sep}"
+            else:
+                content_str = ""  # Empty response for assistant in SFT
+            content_tokens = list(
+                self.tokenizer.encode(content_str, add_special_tokens=False)
+            )
+            tokens.extend(content_tokens)
+            token_mask.extend([True] * len(content_tokens))
+            ar_mask.extend([1] * len(content_tokens))
+
+            # Loss only on assistant responses
+            if role == roles["gpt"]:
+                loss_mask.extend([True] * len(content_tokens))
+            else:
+                loss_mask.extend([False] * len(content_tokens))
+
+        # Pad or truncate to max length
+        tokens_len = len(tokens)
+        if tokens_len < self._max_len:
+            padding = [self.tokenizer.pad_token_id] * (self._max_len - tokens_len)
+            pad_mask = [False] * (self._max_len - tokens_len)
+            tokens = tokens + padding
+            token_mask = token_mask + pad_mask
+            ar_mask = ar_mask + pad_mask
+            loss_mask = loss_mask + pad_mask
+        else:
+            tokens = tokens[: self._max_len]
+            token_mask = token_mask[: self._max_len]
+            ar_mask = ar_mask[: self._max_len]
+            loss_mask = loss_mask[: self._max_len]
+
+        # Create labels (same as input_ids, with IGNORE_INDEX where loss_mask is False)
+        from dexbotic.constants import IGNORE_INDEX
+
+        input_ids = np.asarray(tokens)
+        labels = np.where(np.asarray(loss_mask), input_ids, IGNORE_INDEX)
+
+        return {
+            "input_ids": input_ids,
+            "labels": labels,
+            "token_mask": np.asarray(token_mask),
+            "ar_mask": np.asarray(ar_mask),
+            "loss_mask": np.asarray(loss_mask),
+        }

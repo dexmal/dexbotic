@@ -136,15 +136,15 @@ class DeltaAction:
         # Apply wrap for periodic dimensions
         if periodic_mask is not None:
             for dim in periodic_mask:
-                delta_action[:, dim] = np.where(
-                    delta_action[:, dim] > periodic_range / 2,
-                    delta_action[:, dim] - periodic_range,
-                    delta_action[:, dim]
+                delta_action[..., dim] = np.where(
+                    delta_action[..., dim] > periodic_range / 2,
+                    delta_action[..., dim] - periodic_range,
+                    delta_action[..., dim],
                 )
-                delta_action[:, dim] = np.where(
-                    delta_action[:, dim] < -periodic_range / 2,
-                    delta_action[:, dim] + periodic_range,
-                    delta_action[:, dim]
+                delta_action[..., dim] = np.where(
+                    delta_action[..., dim] < -periodic_range / 2,
+                    delta_action[..., dim] + periodic_range,
+                    delta_action[..., dim],
                 )
 
         delta_action[..., non_delta_mask] = action[..., non_delta_mask]

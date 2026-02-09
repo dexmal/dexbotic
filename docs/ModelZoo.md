@@ -5,7 +5,7 @@
 | Dexbotic-Base         | Discrete vision-language action model (similar to OpenVLA)                  | Single View                                   | NA         | 7B         |[🤗 Hugging Face](https://huggingface.co/Dexmal/Dexbotic-Base) |
 | Dexbotic-CogACT-SArm       | Single-arm CogACT model                                                     | Single View                                   | 7D         | 7B         |[🤗 Hugging Face](https://huggingface.co/Dexmal/Dexbotic-CogACT-SArm) |
 | Dexbotic-CogACT-HArm  | Dual-arm CogACT model with multiple views input                             | Main View + Left Hand-View + Right Hand-View  | 16D        | 7B         |[🤗 Hugging Face](https://huggingface.co/Dexmal/Dexbotic-CogACT-HArm) |
-
+| DM0-base | DM0 base model with Flow Matching action generation | Up to 3 Views | 32D | 2.4B | [🤗 Hugging Face](https://huggingface.co/Dexmal/DM0-base) |
 
 It is recommended to download the pretrained models into the following folders.
 
@@ -15,6 +15,7 @@ cd checkpoints
 git clone https://huggingface.co/Dexmal/Dexbotic-Base Dexbotic-Base
 git clone https://huggingface.co/Dexmal/Dexbotic-CogACT-SArm Dexbotic-CogACT-SArm
 git clone https://huggingface.co/Dexmal/Dexbotic-CogACT-HArm Dexbotic-CogACT-HArm
+git clone https://huggingface.co/Dexmal/DM0-base DM0-base
 ```
 
 ## Action Dimension Description

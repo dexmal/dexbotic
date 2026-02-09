@@ -180,6 +180,27 @@ def policy_v3(p=0.5):
     return A.Compose(aug)
 
 
+def policy_dm0(p=0.5):
+    aug = [
+        PadToSquare(border_mode=cv2.BORDER_CONSTANT, fill=0, fill_mask=0, p=1.0),
+        A.RandomResizedCrop(
+            size=(728, 728), scale=(0.95, 0.95), ratio=(1.0, 1.0), p=1.0
+        ),
+        A.Rotate(limit=(-5, 5), p=1.0),
+        A.ColorJitter(brightness=0.3, contrast=0.4, saturation=0.5, hue=0.1, p=p),
+    ]
+    return A.Compose(aug)
+
+
+def policy_color_dm0(p=0.5):
+    aug = [
+        PadToSquare(border_mode=cv2.BORDER_CONSTANT, fill=0, fill_mask=0, p=1.0),
+        A.Resize(728, 728, p=1.0),
+        A.ColorJitter(brightness=0.3, contrast=0.4, saturation=0.5, hue=0.1, p=p),
+    ]
+    return A.Compose(aug)
+
+
 def policy_pi0(p=0.5):
     aug = [
         PadToSquare(border_mode=cv2.BORDER_CONSTANT, fill=0, fill_mask=0, p=1.0),
@@ -209,6 +230,8 @@ NAME2AUG = {
     'pi0': policy_pi0,
     'color': policy_color,
     'identity': policy_identity,
+    'dm0': policy_dm0,
+    'color_dm0': policy_color_dm0,
 }
 
 

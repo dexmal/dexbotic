@@ -117,6 +117,9 @@ class DexboticTrainer(Trainer):
         self.added_args = EasyDict({
             "tune_mm_mlp_adapter": self.exp_config.trainer_config.tune_mm_mlp_adapter,
         })
+        linked_args["gradient_checkpointing_kwargs"] = {"use_reentrant": False}
+        linked_args["ddp_find_unused_parameters"] = True
+        linked_args["max_grad_norm"] = 1.0
         training_args = TrainingArguments(**linked_args)
         return training_args
 

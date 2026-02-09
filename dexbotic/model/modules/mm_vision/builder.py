@@ -1,5 +1,6 @@
 from transformers import PretrainedConfig
 from .clip.clip_encoder import CLIPVisionTower
+from .pe.pe_encoder import PEVisionTower
 from .siglip.siglip_encoder import SiglipVisionTower
 
 
@@ -18,6 +19,8 @@ def build_vision_tower(mm_vision_tower, **kwargs):
         elif 'clip' in vision_tower.lower():
             return CLIPVisionTower(vision_tower, **kwargs)
 
+        elif 'pe' in vision_tower.lower():
+            return PEVisionTower(vision_tower, **kwargs)
         else:
             raise ValueError(f'Unknown vision tower: {vision_tower}')
     elif isinstance(vision_tower, PretrainedConfig):
