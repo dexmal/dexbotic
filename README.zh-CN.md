@@ -29,7 +29,7 @@
 
 ## 🔥 最新动态
 
-- **[2026-02-10]** [DM0](docs/DM0.md) 正式发布！详情参见 [技术报告]()。
+- **[2026-02-10]** [DM0](docs/DM0.md) 正式发布！详情参见 [技术报告](https://dexmal.com/DM0_Tech_Report.pdf)。
 - **[2026-02-10]** 合作公告：我们非常高兴地宣布与 [RLinf](https://github.com/RLinf/RLinf) 达成战略合作。双方将共同推进 VLA + RL 的研究与应用。
 - **[2026-01-15]** 发布了 [SO-101](hardware/docs/so101_inference_example.md) 在 Dexbotic 中使用的教程。
 - **[2026-01-15]** 支持 [GRPO](docs/RL.md)。
