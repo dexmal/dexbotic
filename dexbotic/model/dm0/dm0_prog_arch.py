@@ -127,7 +127,6 @@ class DM0ProgModel(DexboticVLMModel):
 
         for name, param in self.named_parameters():
             if any(selector in name for selector in params_to_keep_float32):
-                print(f"Keeping {name} in float32")
                 param.data = param.data.to(dtype=torch.float32)
 
 
