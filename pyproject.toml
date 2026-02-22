@@ -96,7 +96,7 @@ attention = [
     "xformers"
 ]
 
-[tool.setuptools]
+[tool.hatch.build.targets.wheel]
 packages = ["dexbotic"]
 
 [tool.autopep8]
