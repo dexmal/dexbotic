@@ -392,7 +392,7 @@ class NaVILAInferenceConfig(InferenceConfig):
 
         try:
             actions = [map_string_to_action(outputs)]
-        except:
+        except Exception:
             actions = [1]
 
         queue_actions = []
@@ -401,7 +401,7 @@ class NaVILAInferenceConfig(InferenceConfig):
             try:
                 match = re.search(r"move forward (\d+) cm", outputs)
                 distance = int(match.group(1))
-            except:
+            except Exception:
                 distance = 25
             if (distance % 25) != 0:
                 distance = min([25, 50, 75], key=lambda x: abs(x - distance))
@@ -412,7 +412,7 @@ class NaVILAInferenceConfig(InferenceConfig):
             try:
                 match = re.search(r"turn left (\d+) degree", outputs)
                 degree = int(match.group(1))
-            except:
+            except Exception:
                 degree = 15
             if (degree % 15) != 0:
                 degree = min([15, 30, 45], key=lambda x: abs(x - degree))
@@ -423,7 +423,7 @@ class NaVILAInferenceConfig(InferenceConfig):
             try:
                 match = re.search(r"turn right (\d+) degree", outputs)
                 degree = int(match.group(1))
-            except:
+            except Exception:
                 degree = 15
             if (degree % 15) != 0:
                 degree = min([15, 30, 45], key=lambda x: abs(x - degree))

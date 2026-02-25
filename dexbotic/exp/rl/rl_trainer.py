@@ -517,7 +517,7 @@ class DexboticRLTrainer(DexboticTrainer):
             return [batch]
         try:
             original_batch_size = int(original_batch_size)
-        except:
+        except Exception:
             pass
         rollout_num = original_batch_size // num_segment
         batch_out = []
