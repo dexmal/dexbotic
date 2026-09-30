@@ -17,7 +17,7 @@
 
 ## Introduction
 
-**Dexbotic** is a VLA (Vision-Language-Action) development toolbox built on the PyTorch framework, designed to provide a unified and efficient solution for embodied intelligence research. It comes with built-in environment configurations for various mainstream VLA models, allowing users to reproduce, fine-tune, and inference cutting-edge VLA algorithms with simple setup.
+**Dexbotic** is a VLA (Vision-Language-Action) development toolbox built on the PyTorch framework, designed to provide a unified and efficient solution for embodied intelligence research. It comes with built-in environment configurations for various mainstream VLA models, allowing users to reproduce, fine-tune, and run inference on cutting-edge VLA algorithms with a simple setup.
 
 - **Ready-to-Use VLA Framework**: Centered around VLA models, integrating embodied manipulation and navigation capabilities, supporting multiple cutting-edge algorithms.
 - **High-Performance Pre-trained Foundation Models**: For mainstream VLA algorithms such as π0 and CogACT, Dexbotic provides multiple optimized pre-trained models.
@@ -172,7 +172,7 @@ A: For detailed installation instructions and troubleshooting, please refer to t
 </details>
 
 <details close>
-<summary>Q: Coverting RLDS/LeRobot to Dexdata</summary>
+<summary>Q: Converting RLDS/LeRobot to Dexdata</summary>
 
 A: We provide a general data conversion guide in [data conversion](docs/Data.md#2-data-conversion). An example of Lerobot data conversion can be found in [convert_lerobot_to_dexdata](script/convert_data/convert_lerobot_to_dexdata.py), and an example for RLDS data conversion is available in [convert_rlds_to_dexdata](script/convert_data/convert_rlds_to_dexdata.py).
 </details>
