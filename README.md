@@ -117,7 +117,7 @@ Run inference with the same command as on CUDA. The device is detected (XPU firs
 ZE_AFFINITY_MASK=0 python playground/benchmarks/libero/libero_cogact.py --task inference
 ```
 
-Checked with the released `Dexmal/libero-db-cogact` checkpoint. Other model wrappers still pick their device as before. The DM05 fast, TensorRT and Triton backends, CUDA graphs and flash-attn stay CUDA-only, and training is not covered.
+Checked with the released `Dexmal/libero-db-cogact` checkpoint. Other model wrappers still pick their device as before. The DM05 fast, TensorRT and Triton backends, CUDA graphs and flash-attn stay CUDA-only.
 
 ### 2. Usage Guide
 

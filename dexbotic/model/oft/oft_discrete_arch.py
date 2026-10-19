@@ -3,7 +3,6 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 
-from dexbotic.device import autocast_device_type
 from dexbotic.model.dexbotic_arch import CausalLMOutputDexbotic
 
 from .oft_arch import OFTConfig, OFTForCausalLM, OFTModel
@@ -167,7 +166,7 @@ class OFTDiscreteForCausalLM(OFTForCausalLM):
         # Project to vocabulary logits for parallel prediction
         # Shape: (batch_size, chunk_size * action_dim, vocab_size)
         predicted_actions = self.lm_head(action_hidden_states)
-        with torch.amp.autocast(autocast_device_type(self.device), dtype=torch.float32):
+        with torch.amp.autocast("cuda", dtype=torch.float32):
             if actions is not None or labels is not None:
                 # Extract action token labels from labels tensor
                 # Action tokens are located at positions [non_padding_length : non_padding_length + action_token_length]

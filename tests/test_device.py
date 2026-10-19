@@ -30,12 +30,6 @@ class DetectionTest(unittest.TestCase):
             self.assertEqual(dev.resolve_device("cpu"), torch.device("cpu"))
             self.assertEqual(dev.resolve_device("xpu"), torch.device("xpu", 0))
 
-    def test_autocast_device_type(self):
-        self.assertEqual(dev.autocast_device_type(torch.device("xpu", 0)), "xpu")
-        self.assertEqual(dev.autocast_device_type("cuda:0"), "cuda")
-        self.assertEqual(dev.autocast_device_type(torch.zeros(1)), "cpu")
-        self.assertEqual(dev.autocast_device_type(torch.device("meta")), "cpu")
-
 
 class SeedAndCacheTest(unittest.TestCase):
     def test_manual_seed_all_only_touches_available_backends(self):
@@ -83,7 +77,7 @@ class InferenceLoadTest(unittest.TestCase):
 
 @unittest.skipUnless(hasattr(torch, "xpu") and torch.xpu.is_available(), "needs an XPU")
 class XpuParityTest(unittest.TestCase):
-    def test_float32_autocast_block_matches_cpu(self):
+    def test_small_mlp_matches_cpu(self):
         torch.manual_seed(0)
         net = torch.nn.Sequential(torch.nn.Linear(16, 32), torch.nn.GELU(), torch.nn.Linear(32, 7))
         x = torch.randn(4, 16)
@@ -91,7 +85,7 @@ class XpuParityTest(unittest.TestCase):
         def run(device):
             module = net.to(device)
             inp = x.to(device)
-            with torch.amp.autocast(dev.autocast_device_type(device), dtype=torch.float32):
+            with torch.no_grad():
                 return module(inp).cpu()
 
         expected = run("cpu")

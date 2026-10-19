@@ -48,12 +48,6 @@ def device_type(device: Union[DeviceLike, torch.Tensor]) -> str:
     return str(device).split(":", 1)[0]
 
 
-def autocast_device_type(device: Union[DeviceLike, torch.Tensor]) -> str:
-    """Device type for ``torch.autocast``; CPU for anything that is not xpu or cuda."""
-    resolved = device_type(device)
-    return resolved if resolved in ("xpu", "cuda") else "cpu"
-
-
 def manual_seed_all(seed: int) -> None:
     """Seed the RNG of every visible accelerator that is available."""
     if is_available("xpu"):
