@@ -102,6 +102,23 @@ pip install -e .
 
 </details>
 
+### How to run the same on Intel's XPU
+
+Skip the Docker image above (it ships CUDA wheels) and use a Python 3.10+ environment with the XPU build of PyTorch, then the packages the inference path needs:
+
+```bash
+pip install torch torchvision --index-url https://download.pytorch.org/whl/xpu
+pip install "transformers>=4.57.6,<5" "datasets<4" "kernels<0.15" accelerate einops einops-exts timm easydict megfile loguru flask diffusers sentencepiece opencv-python-headless albumentations decord numpydantic
+```
+
+Run inference with the same command as on CUDA. The device is detected (XPU first, then CUDA, then CPU) and can be forced with `inference_config.device = "xpu:0"`; `ZE_AFFINITY_MASK=0` plays the role of `CUDA_VISIBLE_DEVICES=0`:
+
+```bash
+ZE_AFFINITY_MASK=0 python playground/benchmarks/libero/libero_cogact.py --task inference
+```
+
+Checked with the released `Dexmal/libero-db-cogact` checkpoint. Other model wrappers still pick their device as before. The DM05 fast, TensorRT and Triton backends, CUDA graphs and flash-attn stay CUDA-only, and training is not covered.
+
 ### 2. Usage Guide
 
 - [Testing and Evaluation](docs/Tutorial.md#evaluation)

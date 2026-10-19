@@ -9,6 +9,7 @@ from PIL import Image
 from transformers import AutoTokenizer
 
 from dexbotic.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
+from dexbotic.device import resolve_device
 from dexbotic.exp.base_exp import (ActionConfig, BaseExp,
                                    ComputeNormActionConfig, DataConfig,
                                    FSDPProfile, ModelConfig,
@@ -149,14 +150,14 @@ class CogACTModelConfig(ModelConfig):
 class InferenceConfig(BaseInferenceConfig):
 
     def _load_model(self) -> None:
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = resolve_device(self.device)
         logger.info(f"Loading model from {self.model_name_or_path}")
         logger.info(f"Using device: {self.device}")
         model = CogACTForCausalLM.from_pretrained(self.model_name_or_path,
                                                   torch_dtype=torch.bfloat16,
                                                   low_cpu_mem_usage=True,
                                                   trust_remote_code=True,
-                                                  device_map={"": "cuda:0"}).to(self.device)
+                                                  device_map={"": str(self.device)}).to(self.device)
         tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
         self.model = model
         self.tokenizer = tokenizer

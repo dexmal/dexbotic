@@ -3,6 +3,7 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 
+from dexbotic.device import autocast_device_type
 from dexbotic.model.cogact.action_model.builder import build_action_model
 from dexbotic.model.dexbotic_arch import (ActionOutputForCausalLM,
                                           CausalLMOutputDexbotic,
@@ -131,7 +132,7 @@ class CogACTForCausalLM(DexboticForCausalLM, ActionOutputForCausalLM):
             cognition_features_repeated = cognition_features.repeat(
                 repeated_diffusion_steps, 1, 1)
 
-            with torch.amp.autocast('cuda', dtype=torch.float32):
+            with torch.amp.autocast(autocast_device_type(self.device), dtype=torch.float32):
                 loss = self.model.action_head_module.loss(
                     actions_repeated, cognition_features_repeated)
 

@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers.modeling_outputs import ModelOutput
 
+from dexbotic.device import autocast_device_type
 from dexbotic.model.memvla.action_model.builder import build_action_model
 from dexbotic.model.dexbotic_arch import (ActionOutputForCausalLM,
                                           CausalLMOutputDexbotic,
@@ -644,7 +645,7 @@ class MemVLAForCausalLM(DexboticForCausalLM, ActionOutputForCausalLM):
             per_tokens_repeated = per_tokens.repeat(
                 repeated_diffusion_steps, 1, 1)
 
-            with torch.amp.autocast('cuda', dtype=torch.float32):
+            with torch.amp.autocast(autocast_device_type(self.device), dtype=torch.float32):
                 loss = self.model.action_head_module.loss(
                     actions_repeated,
                     cog_tokens_repeated,

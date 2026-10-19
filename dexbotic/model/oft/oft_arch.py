@@ -3,6 +3,7 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 
+from dexbotic.device import autocast_device_type
 from dexbotic.model.oft.action_model.builder import build_action_model
 from dexbotic.model.dexbotic_arch import (ActionOutputForCausalLM,
                                           CausalLMOutputDexbotic,
@@ -146,7 +147,7 @@ class OFTForCausalLM(DexboticForCausalLM, ActionOutputForCausalLM):
         else:
             predicted_noise = self.model.action_head.predict_noise(action_hidden_states[:,1:,:])
             predicted_actions = predicted_noise
-        with torch.amp.autocast('cuda', dtype=torch.float32):
+        with torch.amp.autocast(autocast_device_type(self.device), dtype=torch.float32):
             if actions is not None:
                 if 'Linear' in self.config.action_model_type:
                     loss = torch.nn.L1Loss()(actions, predicted_actions)

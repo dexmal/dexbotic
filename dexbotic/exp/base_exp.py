@@ -33,6 +33,7 @@ except ImportError:
 
 import dexbotic.data.utils.normalize as normalize
 from dexbotic.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
+from dexbotic.device import manual_seed_all, resolve_device
 from dexbotic.data.collator import DataCollatorForSupervisedDataset
 from dexbotic.data.dataset.dex_dataset import DexDataset
 from dexbotic.data.dataset.rgb_preprocess import DummyRGBProcessor
@@ -736,6 +737,7 @@ class InferenceConfig(Config):
     - save_image: Whether to save input images for debugging
     - save_image_dir: Directory path for saving images
     - norm_stats: Action normalization statistics
+    - device: Torch device for inference; None picks xpu, then cuda, then cpu
     """
 
     model_name_or_path: Optional[str] = field(default=None)
@@ -744,6 +746,7 @@ class InferenceConfig(Config):
     save_image_dir: str = field(default="./debug_data")
     norm_stats: Optional[dict] = field(default=None)
     camera_order: list = field(default_factory=lambda: ["front"])
+    device: Optional[str] = field(default=None)
 
     def _apply_inference_seed(self, seed) -> None:
         if seed is None or seed == "":
@@ -752,8 +755,7 @@ class InferenceConfig(Config):
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(seed)
+        manual_seed_all(seed)
 
     def process_frame(self) -> None:
         self._apply_inference_seed(request.form.get("seed"))
@@ -789,7 +791,7 @@ class InferenceConfig(Config):
         self.app.run(host="0.0.0.0", port=self.port, debug=False, threaded=False)
 
     def _load_model(self) -> None:
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = resolve_device(self.device)
         logger.info(f"Loading model from {self.model_name_or_path}")
         logger.info(f"Using device: {self.device}")
         model = DexboticForCausalLM.from_pretrained(
@@ -797,7 +799,7 @@ class InferenceConfig(Config):
             torch_dtype=torch.bfloat16,
             low_cpu_mem_usage=True,
             trust_remote_code=True,
-            device_map={"": "cuda:0"},
+            device_map={"": str(self.device)},
         ).to(self.device)
         tokenizer = AutoTokenizer.from_pretrained(self.model_name_or_path)
         self.model = model
