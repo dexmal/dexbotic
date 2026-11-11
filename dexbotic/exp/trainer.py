@@ -1,21 +1,22 @@
+import json
 import math
 import os
-import json
 import re
-from typing import TYPE_CHECKING, Optional
 import shutil
+from typing import TYPE_CHECKING, Optional
 from unittest.mock import patch
 
 import torch
 import transformers
-from loguru import logger
 from easydict import EasyDict
+from loguru import logger
 from torch.optim.lr_scheduler import LambdaLR
+from torch.utils.data import ConcatDataset
 from transformers import Trainer, TrainingArguments
 
+from dexbotic.data.sampler import WeightedMultiDatasetSampler
 from dexbotic.exp.backend_resolver import resolve_backend_mode
 from dexbotic.exp.utils import get_mm_adapter_state_maybe_zero_3
-from dexbotic.model.dexbotic_arch import DexboticVLMModel
 
 if TYPE_CHECKING:
     from dexbotic.exp.base_exp import BaseExp
@@ -110,7 +111,9 @@ class DexboticTrainer(Trainer):
         self.exp_config: BaseExp = kwargs.pop("exp_config")
         self.backend_resolution = self.exp_config.backend_resolution
         if self.backend_resolution is None:
-            self.backend_resolution = resolve_backend_mode(self.exp_config.trainer_config)
+            self.backend_resolution = resolve_backend_mode(
+                self.exp_config.trainer_config
+            )
             self.exp_config.backend_resolution = self.backend_resolution
         self._explicit_fsdp_plugin_kwargs = self.backend_resolution.plugin_kwargs
         self._deepspeed_detection_patcher = None
@@ -200,7 +203,9 @@ class DexboticTrainer(Trainer):
             self.is_tp_enabled = True
             from accelerate import TorchTensorParallelPlugin
 
-            args["torch_tp_plugin"] = TorchTensorParallelPlugin(tp_size=self.model.tp_size)
+            args["torch_tp_plugin"] = TorchTensorParallelPlugin(
+                tp_size=self.model.tp_size
+            )
 
         return args
 
@@ -233,13 +238,19 @@ class DexboticTrainer(Trainer):
                     param,
                     self.args.fsdp_config.get(param, getattr(fsdp_plugin, param)),
                 )
-            if fsdp_plugin.activation_checkpointing and self.args.gradient_checkpointing:
+            if (
+                fsdp_plugin.activation_checkpointing
+                and self.args.gradient_checkpointing
+            ):
                 raise ValueError(
                     "The activation_checkpointing in FSDP config and gradient_checkpointing "
                     "in training args can't be set to True simultaneously."
                 )
 
-        if self.is_deepspeed_enabled and getattr(self.args, "hf_deepspeed_config", None) is None:
+        if (
+            self.is_deepspeed_enabled
+            and getattr(self.args, "hf_deepspeed_config", None) is None
+        ):
             self.propagate_args_to_deepspeed()
 
         if (
@@ -263,7 +274,8 @@ class DexboticTrainer(Trainer):
         if (
             self.args.save_only_model
             and self.is_fsdp_enabled
-            and "SHARDED_STATE_DICT" in str(self.accelerator.state.fsdp_plugin.state_dict_type)
+            and "SHARDED_STATE_DICT"
+            in str(self.accelerator.state.fsdp_plugin.state_dict_type)
         ):
             raise ValueError(
                 "save_only_model option is not compatible with FSDP state dict type 'SHARDED_STATE_DICT'"
@@ -303,17 +315,23 @@ class DexboticTrainer(Trainer):
         self.accelerator = Accelerator(**self._build_explicit_accelerator_kwargs())
         self._postprocess_accelerator_state()
 
+    def _get_train_sampler(self, train_dataset=None):
+        weights = self.exp_config.data_config.dataset_weights
+        if weights is None:
+            return super()._get_train_sampler(train_dataset)
+        dataset = self.train_dataset if train_dataset is None else train_dataset
+        if not isinstance(dataset, ConcatDataset):
+            raise ValueError("dataset_weights requires a ConcatDataset")
+        return WeightedMultiDatasetSampler(
+            dataset.datasets, weights, seed=self.args.seed
+        )
+
     def create_optimizer(self) -> torch.optim.Optimizer:
-        opt_model: DexboticVLMModel = self.model
-
         if self.optimizer is None:
-            optimizer_grouped_parameters = self.exp_config.optimizer_config._get_optimizer_grouped_parameters(
-                opt_model)
-
-            optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(
-                self.args)
-            self.optimizer = optimizer_cls(optimizer_grouped_parameters, **optimizer_kwargs)
-
+            # FSDP2 rebinds these parameters to DTensors during prepare().
+            self.optimizer = self.exp_config.optimizer_config.build_optimizer(
+                self.model, self.args
+            )
         return self.optimizer
 
     def create_scheduler(
@@ -358,29 +376,30 @@ class DexboticTrainer(Trainer):
 
     def _save_checkpoint(self, model, trial, metrics=None) -> None:
         logger.info(f"Saving checkpoint at step {self.state.global_step}")
-        if getattr(self.added_args, 'tune_mm_mlp_adapter', False):
+        if getattr(self.added_args, "tune_mm_mlp_adapter", False):
             from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
+
             checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
 
             run_dir = self._get_output_dir(trial=trial)
             output_dir = os.path.join(run_dir, checkpoint_folder)
 
             # Only save Adapter
-            keys_to_match = ['mm_projector']
+            keys_to_match = ["mm_projector"]
             weight_to_save = get_mm_adapter_state_maybe_zero_3(
-                self.model.named_parameters(), keys_to_match)
+                self.model.named_parameters(), keys_to_match
+            )
 
             if self.args.local_rank == 0 or self.args.local_rank == -1:
                 self.model.config.save_pretrained(output_dir)
-                torch.save(
-                    weight_to_save, os.path.join(
-                        output_dir, 'mm_projector.bin'))
+                torch.save(weight_to_save, os.path.join(output_dir, "mm_projector.bin"))
 
         else:
             super(DexboticTrainer, self)._save_checkpoint(model, trial)
             # Copy norm_stats.json to checkpoint directory after saving
             if self.args.local_rank == 0 or self.args.local_rank == -1:
                 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
+
                 checkpoint_folder = f"{PREFIX_CHECKPOINT_DIR}-{self.state.global_step}"
                 run_dir = self._get_output_dir(trial=trial)
                 output_dir = os.path.join(run_dir, checkpoint_folder)
@@ -389,20 +408,22 @@ class DexboticTrainer(Trainer):
 
     def _copy_norm_stats_to_checkpoint(self, checkpoint_dir: str) -> None:
         """Copy norm_stats.json from main output directory to checkpoint directory"""
-        
+
         main_output_dir = self.args.output_dir
         norm_stats_src = os.path.join(main_output_dir, "norm_stats.json")
         norm_stats_dst = os.path.join(checkpoint_dir, "norm_stats.json")
-        
+
         if os.path.exists(norm_stats_src):
             try:
                 shutil.copy2(norm_stats_src, norm_stats_dst)
-                logger.info(f"Copied norm_stats.json to checkpoint directory: {checkpoint_dir}")
+                logger.info(
+                    f"Copied norm_stats.json to checkpoint directory: {checkpoint_dir}"
+                )
             except Exception as e:
                 logger.warning(f"Failed to copy norm_stats.json to checkpoint: {e}")
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None) -> None:
-        if getattr(self.added_args, 'tune_mm_mlp_adapter', False):
+        if getattr(self.added_args, "tune_mm_mlp_adapter", False):
             pass
         else:
             super(DexboticTrainer, self)._save(output_dir, state_dict)
@@ -453,19 +474,27 @@ class DexboticTrainer(Trainer):
             linked_args["fsdp"] = resolution.trainer_fsdp
             linked_args["fsdp_config"] = dict(resolution.trainer_fsdp_config or {})
 
-        self.added_args = EasyDict({
-            "tune_mm_mlp_adapter": trainer_config.tune_mm_mlp_adapter,
-            "train_backend": trainer_config.train_backend,
-            "resolved_mode": resolution.resolved_mode,
-        })
+        self.added_args = EasyDict(
+            {
+                "tune_mm_mlp_adapter": trainer_config.tune_mm_mlp_adapter,
+                "train_backend": trainer_config.train_backend,
+                "resolved_mode": resolution.resolved_mode,
+            }
+        )
         fsdp_config = linked_args.get("fsdp_config") or {}
         fsdp_config_summary = None
         if fsdp_config:
             fsdp_config_summary = {
-                "fsdp_version": fsdp_config.get("fsdp_version", fsdp_config.get("version")),
-                "transformer_layer_cls_to_wrap": fsdp_config.get("transformer_layer_cls_to_wrap"),
+                "fsdp_version": fsdp_config.get(
+                    "fsdp_version", fsdp_config.get("version")
+                ),
+                "transformer_layer_cls_to_wrap": fsdp_config.get(
+                    "transformer_layer_cls_to_wrap"
+                ),
                 "activation_checkpointing": fsdp_config.get("activation_checkpointing"),
-                "cpu_ram_efficient_loading": fsdp_config.get("cpu_ram_efficient_loading"),
+                "cpu_ram_efficient_loading": fsdp_config.get(
+                    "cpu_ram_efficient_loading"
+                ),
                 "reshard_after_forward": fsdp_config.get("reshard_after_forward"),
             }
         logger.info(
@@ -478,7 +507,9 @@ class DexboticTrainer(Trainer):
             fsdp_config_summary,
             resolution.plugin_kwargs,
             linked_args.get("bf16"),
-            resolution.package_versions.transformers if resolution.package_versions else transformers.__version__,
+            resolution.package_versions.transformers
+            if resolution.package_versions
+            else transformers.__version__,
         )
         linked_args["gradient_checkpointing_kwargs"] = {"use_reentrant": False}
         linked_args["ddp_find_unused_parameters"] = True
@@ -512,6 +543,21 @@ class DexboticTrainer(Trainer):
             return self._custom_training_step(
                 model, inputs, num_items_in_batch, use_raw_backward
             )
+
+        trainer_scales_loss = (
+            not self.model_accepts_loss_kwargs or num_items_in_batch is None
+        ) and self.compute_loss_func is None
+        if trainer_scales_loss and not self.is_deepspeed_enabled:
+            # Trainer divides batch-mean losses by the actual accumulation count.
+            # Transformers 5.3 also configures an Accelerator divisor; suppress
+            # that second division without changing the plugin outside this step.
+            accelerator_steps = self.accelerator.gradient_accumulation_steps
+            self.accelerator.gradient_accumulation_steps = 1
+            try:
+                return super().training_step(model, inputs, num_items_in_batch)
+            finally:
+                self.accelerator.gradient_accumulation_steps = accelerator_steps
+
         return super().training_step(model, inputs, num_items_in_batch)
 
     def _custom_training_step(
@@ -535,44 +581,49 @@ class DexboticTrainer(Trainer):
 
         if (
             not getattr(self, "model_accepts_loss_kwargs", False)
-            and self.compute_loss_func is None
-        ):
-            loss = loss / self.args.gradient_accumulation_steps
+            or num_items_in_batch is None
+        ) and self.compute_loss_func is None:
+            accumulation_steps = getattr(
+                self,
+                "current_gradient_accumulation_steps",
+                self.args.gradient_accumulation_steps,
+            )
+            loss = loss / accumulation_steps
 
         loss.backward()
         return loss.detach()
 
 
-def safe_save_model_for_hf_trainer(trainer: transformers.Trainer,
-                                   output_dir: str) -> None:
+def safe_save_model_for_hf_trainer(
+    trainer: transformers.Trainer, output_dir: str
+) -> None:
     """Collects the state dict and dump to disk."""
 
     if getattr(trainer.added_args, "tune_mm_mlp_adapter", False):
-        keys_to_match = ['mm_projector']
+        keys_to_match = ["mm_projector"]
         weight_to_save_mm_projector = get_mm_adapter_state_maybe_zero_3(
-            trainer.model.named_parameters(), keys_to_match)
+            trainer.model.named_parameters(), keys_to_match
+        )
 
         trainer.model.config.save_pretrained(output_dir)
         trainer.processing_class.save_pretrained(output_dir)
 
-        current_folder = output_dir.split('/')[-1]
+        current_folder = output_dir.split("/")[-1]
         parent_folder = os.path.dirname(output_dir)
         if trainer.args.local_rank == 0 or trainer.args.local_rank == -1:
-            if current_folder.startswith('checkpoint-'):
+            if current_folder.startswith("checkpoint-"):
                 mm_projector_folder = os.path.join(parent_folder, "mm_projector")
                 os.makedirs(mm_projector_folder, exist_ok=True)
                 torch.save(
                     weight_to_save_mm_projector,
-                    os.path.join(
-                        mm_projector_folder,
-                        f'{current_folder}.bin'))
+                    os.path.join(mm_projector_folder, f"{current_folder}.bin"),
+                )
 
             else:
                 torch.save(
                     weight_to_save_mm_projector,
-                    os.path.join(
-                        output_dir,
-                        'mm_projector.bin'))
+                    os.path.join(output_dir, "mm_projector.bin"),
+                )
         return
 
     if trainer.deepspeed:
@@ -594,10 +645,7 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer,
 
     state_dict = trainer.model.state_dict()
     if trainer.args.should_save:
-        cpu_state_dict = {
-            key: value.cpu()
-            for key, value in state_dict.items()
-        }
+        cpu_state_dict = {key: value.cpu() for key, value in state_dict.items()}
         del state_dict
         trainer._save(output_dir, state_dict=cpu_state_dict)  # noqa
         _save_lora_extra_trainable_state_for_trainer(trainer, output_dir)

@@ -18,7 +18,8 @@ We provide simulation data that has already been processed and formatted for dir
 | Libero  | [🤗 Hugging Face](https://huggingface.co/datasets/Dexmal/libero) |
 | CALVIN  | [🤗 Hugging Face](https://huggingface.co/datasets/Dexmal/calvin) |
 | Simpler-Env  | [🤗 Hugging Face](https://huggingface.co/datasets/Dexmal/simpler) |
-| RoboTwin 2.0 | [🤗 Hugging Face](https://huggingface.co/datasets/Dexmal/robotwin) |
+| RoboTwin 2.0 (CogACT) | [🤗 Hugging Face](https://huggingface.co/datasets/Dexmal/robotwin) |
+| RoboTwin 2.0 (DM05 SFT) | [🤗 Hugging Face](https://huggingface.co/datasets/Dexmal/robotwin2-full) |
 | ManiSkill2 | [🤗 Hugging Face](https://huggingface.co/datasets/Dexmal/maniskill2) |
 
 Please organize the data according to the following directory structure:
@@ -51,6 +52,40 @@ Please organize the data according to the following directory structure:
 └── ...
 
 ```
+
+### RoboTwin2 Data Layouts
+
+The `data/robotwin` layout above is used by the RoboTwin2 **CogACT** recipe:
+annotations are under `data/robotwin/jsonl/<task>/`, and media paths use
+`data/robotwin/video` as their prefix.
+
+The **DM05 SFT** recipe uses the official
+[Dexmal/robotwin2-full](https://huggingface.co/datasets/Dexmal/robotwin2-full)
+archive, registered by
+[`robotwin2_sft.py`](../dexbotic/data/data_source/robotwin2_sft.py). The archive
+extracts as follows:
+
+```text
+data/robotwin2.0/
+├── jsonl/
+│   ├── adjust_bottle/
+│   │   ├── clean/
+│   │   └── randomized/
+│   └── ...
+└── video/
+    ├── adjust_bottle/
+    │   ├── clean/
+    │   └── randomized/
+    └── ...
+```
+
+JSONL files may also be nested below each setting directory. The default
+dataset selection includes all 50 tasks in both settings (100 datasets), named
+`robotwin2_example_<task>_<clean|randomized>`. Use `--dataset-name` to select a
+subset; join multiple registered names with `+`.
+
+See [DM05 RoboTwin2 training](DM05.md#robotwin2) for the state,
+action-target, and normalization-statistics requirements.
 
 
 ## Data Format
@@ -117,6 +152,9 @@ Field Specifications:
     + Typically 7-dimensional: 3D position + 3D rotation + 1 gripper
     + By default, actions are constructed online using built-in dataset transforms.
     + Pre-processed actions can also be stored explicitly under the `action` key.
+    + The RoboTwin2 DM05 SFT recipe requires finite 14-dimensional states and
+      reconstructs absolute actions from future states, overwriting any stored
+      `action`. See its [action-target contract](DM05.md#prepare-provided-data).
 
 + Text data
     + Prompts are stored in the `prompt` key.

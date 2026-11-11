@@ -1,4 +1,4 @@
-"""RoboTwin2 DM05 inference service for the default and fast backends."""
+"""RoboTwin2 DM05 SFT and inference for the default and fast backends."""
 
 from __future__ import annotations
 
@@ -10,8 +10,10 @@ import numpy as np
 import torch
 from flask import jsonify, request
 
-from dexbotic.exp.dm05_exp import DM05Exp as _DM05Exp
+from dexbotic.data.dataset.robotwin2_dm05_data import RoboTwin2ImagePreprocess
 from dexbotic.exp.dm05_exp import DM05InferenceConfig as _DM05InferenceConfig
+from dexbotic.exp.robotwin2_dm05_exp import RoboTwin2SFTExp as _DM05Exp
+from dexbotic.exp.robotwin2_dm05_exp import dataset_weight
 from dexbotic.infer import history_images_from_observation
 from dexbotic.model.dm05.dm05_utils import (
     HISTORY_IMAGE_TOKEN,
@@ -46,6 +48,10 @@ class RoboTwin2DM05Policy(DM05Policy):
     state_used = True
     state_required = True
     state_dim = STATE_DIM
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.image_preprocess = RoboTwin2ImagePreprocess()
 
     def prepare_inputs(self, observation: dict, sampling_config=None):
         images = []
@@ -235,16 +241,23 @@ class DM05Exp(_DM05Exp):
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--task",
+        choices=["train", "inference", "compute_norm_stats"],
+        default="inference",
+    )
+    parser.add_argument("--train-backend", choices=["fsdp2"], default=None)
+    parser.add_argument("--dataset-name", default=None)
+    parser.add_argument("--dataset-weights", nargs="+", type=float, default=None)
+    parser.add_argument("--output-dir", default=None)
+    parser.add_argument("--num-train-steps", type=int, default=None)
+    parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--optim", choices=["muon_adamw", "adamw_torch"], default=None)
+    parser.add_argument(
         "--model-name-or-path",
         "--model_name_or_path",
         dest="model_name_or_path",
-        required=True,
+        default="./checkpoints/DM05",
         help="RoboTwin2 DM05 checkpoint directory.",
-    )
-    parser.add_argument(
-        "--norm-stats",
-        default=None,
-        help="Optional norm_stats.json path when it is outside the checkpoint.",
     )
     parser.add_argument(
         "--backend",
@@ -321,14 +334,42 @@ def configure_inference(exp: DM05Exp, args: argparse.Namespace) -> None:
     config.max_history_images = args.max_history_images
     if args.prefix_seq_len_buckets is not None:
         config.prefix_seq_len_buckets = args.prefix_seq_len_buckets
-    if args.norm_stats is not None:
-        config.norm_stats = config.read_normalization_stats(args.norm_stats)
 
 
 def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
     exp = DM05Exp()
-    configure_inference(exp, parse_args(argv))
-    exp.inference()
+    if args.task == "inference":
+        configure_inference(exp, args)
+        exp.inference()
+        return
+    configure_training(exp, args)
+    if args.task == "train":
+        exp.train()
+    else:
+        exp.compute_norm_stats()
+
+
+def configure_training(exp: DM05Exp, args: argparse.Namespace) -> None:
+    exp.model_config.model_name_or_path = args.model_name_or_path
+    if args.dataset_name is not None:
+        exp.data_config.dataset_name = args.dataset_name
+        exp.data_config.dataset_weights = [
+            dataset_weight(name) for name in args.dataset_name.split("+")
+        ]
+    if args.dataset_weights is not None:
+        exp.data_config.dataset_weights = args.dataset_weights
+    for arg, name in (
+        ("train_backend", "train_backend"),
+        ("output_dir", "output_dir"),
+        ("num_train_steps", "num_train_steps"),
+        ("batch_size", "per_device_train_batch_size"),
+    ):
+        value = getattr(args, arg)
+        if value is not None:
+            setattr(exp.trainer_config, name, value)
+    if args.optim is not None:
+        exp.optimizer_config.optim = args.optim
 
 
 if __name__ == "__main__":

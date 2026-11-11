@@ -239,6 +239,7 @@ def make_suffix_attn_mask(
     dtype: torch.dtype = torch.bfloat16,
     pad_token_id: int = 0,
     invisible_prefix_token_ids: tuple[int, ...] = (),
+    labels: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Build the attention mask from suffix tokens to prefix and suffix tokens.
 
@@ -259,6 +260,9 @@ def make_suffix_attn_mask(
     pad_mask = prefix_ids == pad_token_id
     for token_id in invisible_prefix_token_ids:
         pad_mask = pad_mask | (prefix_ids == token_id)
+    if labels is not None:
+        # The action expert must not read the supervised answer from the KV cache.
+        pad_mask = pad_mask | (labels[:, :prefix_len] != -100)
     pad_mask = pad_mask.unsqueeze(1).expand(-1, suffix_len, -1)
     prefix_mask = prefix_mask.masked_fill(pad_mask, NEG_INF)
 

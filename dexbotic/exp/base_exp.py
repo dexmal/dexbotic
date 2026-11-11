@@ -110,6 +110,19 @@ class OptimizerConfig(Config):
     mm_vision_lr: Optional[float] = field(default=None)
     action_head_lr: Optional[float] = field(default=None)
 
+    def build_optimizer(
+        self,
+        model: DexboticVLMModel,
+        training_args: transformers.TrainingArguments,
+    ) -> torch.optim.Optimizer:
+        """Build the default HF optimizer; recipes may override this factory."""
+        parameters = self._get_optimizer_grouped_parameters(model)
+        (
+            optimizer_cls,
+            optimizer_kwargs,
+        ) = transformers.Trainer.get_optimizer_cls_and_kwargs(training_args)
+        return optimizer_cls(parameters, **optimizer_kwargs)
+
     def _get_optimizer_grouped_parameters(self, model: DexboticVLMModel) -> list:
         """Returns a list of dictionaries containing parameters grouped by their names
         and whether they require weight decay.
@@ -658,6 +671,7 @@ class DataConfig(Config):
 
     Configuration details:
     - dataset_name: Dataset name
+    - dataset_weights: Optional sampling weights for the children of a ConcatDataset
     - num_images: Number of images
     - data_keys: Data key list, used for loading specified data fields
     - images_keys: Image key list, specifies image data field names. If None, use all image data fields
@@ -669,6 +683,7 @@ class DataConfig(Config):
     """
 
     dataset_name: str = field(default=None)
+    dataset_weights: Optional[list[float]] = field(default=None)
     num_images: int = field(default=1)
     data_keys: list[str] = field(
         default_factory=lambda: ["input_ids", "labels", "action", "image"]

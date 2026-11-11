@@ -29,6 +29,7 @@
 
 ## 🔥 最新动态
 
+- **[2026-11-11]** 新增 [DM05 RoboTwin2](docs/DM05.md#robotwin2) 全量 SFT 训练与推理支持。详见 [robotwin2_dm05.py](playground/benchmarks/robotwin2/robotwin2_dm05.py)。
 - **[2026-09-11]** [DM05](docs/DM05.md#history-frame-inference) 新增历史感知推理能力，支持更丰富的时序信息建模。
 - **[2026-09-10]** [DM05](docs/DM05.md#inference-performance) 推理能力全面升级，新增高性能推理后端，带来约 **5 倍** 的模型推理加速。
 - **[2026-09-01]** [DM05](docs/DM05.md) 正式发布！详情参见 [技术报告](https://www.dexmal.com/blog/dm0.5)。LIBERO full SFT 与 LoRA 见 [libero_dm05.py](playground/benchmarks/libero/libero_dm05.py) 和 [libero_dm05_lora.py](playground/benchmarks/libero/libero_dm05_lora.py)。

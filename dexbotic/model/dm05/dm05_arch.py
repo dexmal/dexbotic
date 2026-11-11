@@ -470,6 +470,9 @@ class DM05ForConditionalGeneration(DM05PreTrainedModel):
     - ``inference_action()``: action inference with Euler sampling.
     """
 
+    # Flow-matching loss is a micro-batch mean, independent of loss kwargs.
+    # Let Trainer normalize it across gradient accumulation steps.
+    accepts_loss_kwargs = False
     config_class = DM05Config
     _tied_weights_keys = {
         "model.vlm.lm_head.weight": "model.vlm.model.language_model.embed_tokens.weight",
@@ -745,6 +748,7 @@ class DM05ForConditionalGeneration(DM05PreTrainedModel):
         cache_position: torch.LongTensor | None = None,
         action: torch.FloatTensor | None = None,
         action_mask: torch.BoolTensor | None = None,
+        labels: torch.LongTensor | None = None,
         **kwargs,
     ) -> Gemma3CausalLMOutputWithPast:
         """Run the training forward pass and compute flow-matching loss."""
@@ -796,6 +800,7 @@ class DM05ForConditionalGeneration(DM05PreTrainedModel):
             device=suffix_embeds.device,
             dtype=suffix_embeds.dtype,
             pad_token_id=self.model.vlm.model.language_model.padding_idx,
+            labels=labels,
         )
 
         suffix_position_ids = self._build_suffix_position_ids(
@@ -804,6 +809,7 @@ class DM05ForConditionalGeneration(DM05PreTrainedModel):
             suffix_embeds.device,
             input_ids=input_ids,
             pad_token_id=self.model.vlm.model.language_model.padding_idx,
+            labels=labels,
         )
 
         suffix_out = self._suffix_forward(
@@ -822,8 +828,12 @@ class DM05ForConditionalGeneration(DM05PreTrainedModel):
 
         per_sample_fm = (elem_mse * action_mask).sum(dim=(1, 2)) / action_mask.sum(
             dim=(1, 2)
-        )
+        ).clamp(min=1.0)
         fm_loss = per_sample_fm.mean()
+        if labels is not None:
+            # Match the reference's connected zero AR objective. This keeps the
+            # final VLM blocks in the graph without an AR loss.
+            fm_loss = fm_loss + prefix_hidden_states.sum(dtype=torch.float32) * 0.0
 
         return DM05OutputWithPast(
             loss=fm_loss,
@@ -1010,8 +1020,11 @@ class DM05ForConditionalGeneration(DM05PreTrainedModel):
         input_ids: torch.Tensor,
         pad_token_id=0,
         invisible_prefix_token_ids: tuple[int, ...] = (),
+        labels: torch.Tensor | None = None,
     ):
         valid_prefix = input_ids[:, :prefix_len] != pad_token_id  # [B, prefix_len]
+        if labels is not None:
+            valid_prefix = valid_prefix & (labels[:, :prefix_len] == -100)
         for token_id in invisible_prefix_token_ids:
             valid_prefix = valid_prefix & (input_ids[:, :prefix_len] != token_id)
         effective_prefix_len = valid_prefix.sum(dim=1)  # [B]

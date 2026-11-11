@@ -580,8 +580,11 @@ class DM05Exp(BaseExp):
         self.inference_config.run()
 
     def compute_norm_stats(self) -> None:
-        self.data_config.action_config = DM05ComputeNormActionConfig()
+        self.data_config.action_config = self._build_compute_norm_config()
         self.data_config.action_config.compute_norm_stats(self.data_config.dataset_name)
+
+    def _build_compute_norm_config(self):
+        return DM05ComputeNormActionConfig()
 
     def _auto_compute_norm_stats(self) -> None:
         if (
@@ -592,7 +595,7 @@ class DM05Exp(BaseExp):
         _action_config = self.data_config.action_config
         save_name = hashlib.md5(self.data_config.dataset_name.encode()).hexdigest()[:8]
         norm_file_path = os.path.join(
-            os.path.dirname(DM05ComputeNormActionConfig().norm_save_path),
+            os.path.dirname(self._build_compute_norm_config().norm_save_path),
             save_name,
             "norm_stats.json",
         )
@@ -647,7 +650,7 @@ class DM05Exp(BaseExp):
             data_collator=data_collator,
         )
         if self.local_rank == 0 and hasattr(
-            train_dataset.action_process_func, "statistic_mapping"
+            getattr(train_dataset, "action_process_func", None), "statistic_mapping"
         ):
             os.makedirs(self.trainer_config.output_dir, exist_ok=True)
             with open(

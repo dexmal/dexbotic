@@ -29,6 +29,7 @@
 
 ## 🔥 News
 
+- **[2026-11-11]** Added [DM05 RoboTwin2](docs/DM05.md#robotwin2) full SFT and inference support. See [robotwin2_dm05.py](playground/benchmarks/robotwin2/robotwin2_dm05.py) for details.
 - **[2026-09-11]** Added history-aware inference support to [DM05](docs/DM05.md#history-frame-inference) for richer temporal context.
 - **[2026-09-10]** Upgraded [DM05](docs/DM05.md#inference-performance) inference with a high-performance backend, delivering an approximately **5x model-inference speedup**.
 - **[2026-09-01]** Dexbotic [DM05](docs/DM05.md) released! See the [technical report](https://www.dexmal.com/blog/dm0.5) for more information. See [libero_dm05.py](playground/benchmarks/libero/libero_dm05.py) and [libero_dm05_lora.py](playground/benchmarks/libero/libero_dm05_lora.py) for LIBERO full SFT and LoRA.

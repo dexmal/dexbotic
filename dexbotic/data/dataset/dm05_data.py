@@ -202,6 +202,9 @@ class DM05DataCollator:
             inputs["history_mask"] = history_mask
         return inputs
 
+    def _tokenize_sample(self, instance, prompt, pil_views, pil_history_views):
+        return self._tokenize_instance(prompt, pil_views, pil_history_views)
+
     def __call__(self, instances: Sequence[dict]) -> dict[str, torch.Tensor]:
         tokenized = []
         actions = []
@@ -225,17 +228,22 @@ class DM05DataCollator:
                     for view in history_images
                 ]
             tokenized.append(
-                self._tokenize_instance(prompt, pil_views, pil_history_views)
+                self._tokenize_sample(inst, prompt, pil_views, pil_history_views)
             )
             actions.append(inst["action"].float())
 
         max_len = max(item["input_ids"].shape[1] for item in tokenized)
+        labels = []
         input_ids, attention_mask, token_type_ids, pixel_values = [], [], [], []
         has_history = any("history_mask" in item for item in tokenized)
         history_masks = []
         per_sample_history_pixel_values = []
         for item in tokenized:
             pad_len = max_len - item["input_ids"].shape[1]
+            if "labels" in item:
+                labels.append(
+                    torch.nn.functional.pad(item["labels"], (0, pad_len), value=-100)
+                )
             input_ids.append(
                 torch.cat(
                     [
@@ -297,6 +305,10 @@ class DM05DataCollator:
             "action": action,
             "action_mask": action_mask,
         }
+        if labels:
+            if len(labels) != len(instances):
+                raise ValueError("DM05 samples must either all have labels or none")
+            batch["labels"] = torch.cat(labels, dim=0)
         if has_history:
             history_batch = collate_history_image_tensors(
                 per_sample_history_pixel_values,
