@@ -16,7 +16,7 @@ accelerate>=1.10.0
 pydantic==2.10.6
 ```
 
-After pulling the repo, `pip install -e .` installs these pins. The default `Dockerfile` also pre-installs `torch==2.6.2` and `transformers==4.57.6` in the `dexbotic` conda environment.
+After pulling the repo, `pip install -e .` installs these pins. The default `Dockerfile` also pre-installs `torch==2.6.0` and `transformers==4.57.6` in the `dexbotic` conda environment.
 
 `transformers<5.0.0` uses the explicit Accelerate FSDP2 plugin path. `transformers>=5.0.0` is supported and will use the native Trainer FSDP2 path when available.
 

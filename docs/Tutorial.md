@@ -38,7 +38,7 @@ conda activate dexbotic
 pip install -e .
 ```
 
-The image built from this repo's `Dockerfile` ships with `torch==2.6.2` and `transformers==4.57.6`.
+The image built from this repo's `Dockerfile` ships with `torch==2.6.0` and `transformers==4.57.6`.
 
 <details>
 <summary>Using on Blackwell GPUs</summary>
