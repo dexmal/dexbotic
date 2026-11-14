@@ -51,7 +51,7 @@ def get_task_list(meta_dir):
                 try:
                     info = json.loads(line)
                     tasks.append(info.get("task", info.get("instruction", "")))
-                except:
+                except Exception:
                     continue
     return tasks
 

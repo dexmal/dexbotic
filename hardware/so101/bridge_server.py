@@ -47,7 +47,7 @@ class BridgeService(services_pb2_grpc.AsyncInferenceServicer):
         self.shutdown_event.clear()
         try:
             cv2.destroyAllWindows()
-        except:
+        except Exception:
             pass
         return services_pb2.Empty()
 
